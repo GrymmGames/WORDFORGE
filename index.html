@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Builder Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap');
+
+        :root {
+            --primary-color: #000000;
+            --secondary-color: #ff5722;
+            --tertiary-color: #424242;
+            --background-color: #212121;
+            --text-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            box-sizing: border-box;
+            background-image: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            /* Ensure the body covers the full viewport for mobile */
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; /* Prevent scrolling on specific mobile dimensions if content fits */
+        }
+
+        .game-container {
+            background-color: #1a1a1a;
+            border-radius: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            padding: 15px; /* Reduced padding for mobile */
+            text-align: center;
+            width: 95%; /* Flexible width */
+            max-width: 540px; /* Target half of 1080px for a comfortable mobile width */
+            height: 95vh; /* Occupy most of the viewport height */
+            max-height: 960px; /* Target half of 1920px for a comfortable mobile height */
+            box-sizing: border-box;
+            position: relative;
+            border: 2px solid var(--secondary-color);
+            filter: drop-shadow(0 0 5px var(--secondary-color));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between; /* Distribute content vertically */
+        }
+
+        h1 {
+            color: var(--secondary-color);
+            margin-bottom: 10px; /* Reduced margin */
+            font-weight: 800;
+            font-size: 1.5rem; /* Smaller font size for mobile */
+            letter-spacing: -1px;
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 2px 2px var(--primary-color);
+        }
+
+        .dashboard {
+            display: flex;
+            justify-content: space-around;
+            gap: 8px; /* Reduced gap */
+            margin-bottom: 15px; /* Reduced margin */
+            font-size: 0.9rem; /* Smaller font size */
+            font-weight: 600;
+            width: 100%;
+        }
+
+        .trophies, .words-count, .timer {
+            padding: 6px 10px; /* Reduced padding */
+            background-color: var(--tertiary-color);
+            color: var(--secondary-color);
+            border: 2px solid var(--secondary-color);
+            border-radius: 0;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 3px; /* Reduced gap */
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.7rem; /* Smaller font size */
+        }
+        
+        .trophies::before {
+            content: '🏆';
+            font-size: 1rem; /* Smaller icon size */
+        }
+
+        .main-game-area {
+            display: none;
+            flex-direction: column;
+            gap: 10px; /* Reduced gap */
+            width: 100%;
+            flex-grow: 1; /* Allow it to take available space */
+            justify-content: space-between; /* Distribute content vertically */
+        }
+        
+        .letter-grid-container {
+            width: 100%;
+            flex-grow: 1; /* Allow grid to take available space */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Center the grid vertically if space allows */
+            padding-bottom: 10px; /* Space from controls */
+        }
+
+        .letter-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 5px; /* Closer tiles */
+            justify-items: center;
+            align-items: center;
+            width: 100%;
+            max-width: 300px; /* Max width for the grid itself */
+            margin: auto; /* Center the grid */
+        }
+
+        .letter-tile {
+            background-color: #fff;
+            border-radius: 0;
+            width: 50px; /* Smaller tile size */
+            height: 50px; /* Smaller tile size */
+            position: relative;
+            font-size: 1rem; /* Smaller font size */
+            font-weight: 800;
+            text-transform: uppercase;
+            user-select: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s;
+            box-shadow: 3px 3px 0 var(--tertiary-color); /* Smaller shadow */
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .letter-tile:hover {
+            transform: translate(-1px, -1px); /* Smaller hover effect */
+            box-shadow: 4px 4px 0 var(--tertiary-color);
+        }
+
+        .letter-cell {
+            cursor: grab;
+        }
+
+        .letter-cell.dragged {
+            opacity: 0.7;
+            transform: scale(0.9);
+        }
+
+        .letter-tile .points {
+            position: absolute;
+            bottom: 1px; /* Adjusted position */
+            right: 1px; /* Adjusted position */
+            font-size: 0.6rem; /* Smaller font size */
+            font-weight: 700;
+            color: #fff;
+            background-color: var(--tertiary-color);
+            padding: 1px 4px; /* Smaller padding */
+            border-radius: 0;
+            border: 1px solid var(--text-color);
+        }
+        
+        .letter-tile .letter {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem; /* Smaller font size */
+        }
+
+        .word-creator-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* Reduced gap */
+            margin-bottom: 10px; /* Reduced margin */
+        }
+        
+        .word-creator {
+            min-height: 50px; /* Reduced height */
+            padding: 6px; /* Reduced padding */
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 5px; /* Reduced gap */
+            border: 3px solid #616161;
+            background-color: #1a1a1a;
+            border-radius: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .word-creator.hovering {
+            background-color: #2a2a2a;
+            border-color: var(--secondary-color);
+        }
+
+        .creator-letter {
+            width: 40px; /* Smaller size */
+            height: 40px; /* Smaller size */
+            font-size: 0.9rem; /* Smaller font size */
+            cursor: default;
+        }
+        
+        .creator-letter .points {
+            font-size: 0.5rem; /* Smaller font size */
+            padding: 1px 3px;
+        }
+
+        /* New styles for the empty tile slots */
+        .empty-slot {
+            width: 40px; /* Smaller size */
+            height: 40px; /* Smaller size */
+            border: 2px dashed #9e9e9e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.5rem; /* Smaller font size */
+            color: #ccc;
+            position: relative;
+        }
+        .empty-slot.highlight-default {
+            border-color: #616161;
+            background-color: #1a1a1a;
+        }
+        /* ... existing highlight styles ... */
+        .slot-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 10px; /* Reduced gap */
+            margin-top: 10px; /* Reduced margin */
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            padding: 10px 15px; /* Smaller padding */
+            border: 2px solid var(--secondary-color);
+            border-radius: 0;
+            font-family: 'Press Start 2P', cursive;
+            font-weight: 700;
+            font-size: 0.7rem; /* Smaller font size */
+            cursor: pointer;
+            box-shadow: 3px 3px 0 var(--tertiary-color); /* Smaller shadow */
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: translate(-1px, -1px); /* Smaller hover effect */
+            box-shadow: 4px 4px 0 var(--tertiary-color);
+        }
+
+        .btn:active {
+            transform: translate(0, 0);
+            box-shadow: 3px 3px 0 var(--tertiary-color);
+        }
+        
+        .btn-secondary {
+            background-color: var(--tertiary-color);
+            color: #fff;
+            border: 2px solid #fff;
+            box-shadow: 3px 3px 0 var(--primary-color);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 4px 4px 0 var(--primary-color);
+        }
+
+        .btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message-box {
+            background-color: #ff5722;
+            color: #1a1a1a;
+            padding: 10px; /* Reduced padding */
+            border-radius: 0;
+            font-weight: 700;
+            margin-top: 10px; /* Reduced margin */
+            font-size: 0.9rem; /* Smaller font size */
+            visibility: hidden;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+            border: 2px solid #fff;
+        }
+
+        .message-box.show {
+            visibility: visible;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: #1a1a1a;
+            padding: 20px; /* Reduced padding */
+            border-radius: 0;
+            width: 90%; /* Flexible width */
+            max-width: 400px; /* Max width for modal */
+            text-align: left;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            border: 2px solid var(--secondary-color);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px; /* Adjusted position */
+            right: 15px; /* Adjusted position */
+            font-size: 1.8rem; /* Smaller font size */
+            color: var(--secondary-color);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .powerup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px; /* Reduced margin */
+            padding: 12px; /* Reduced padding */
+            background-color: #2a2a2a;
+            border-radius: 0;
+            border: 2px solid #555;
+        }
+        
+        .powerup-item h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1rem; /* Smaller font size */
+            color: var(--text-color);
+            font-family: 'Press Start 2P', cursive;
+        }
+        
+        .powerup-item p {
+            margin: 0;
+            font-size: 0.8rem; /* Smaller font size */
+            color: #ccc;
+        }
+        
+        .powerup-item .cost {
+            font-weight: 800;
+            color: var(--secondary-color);
+        }
+        
+        .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            padding: 15px; /* Reduced padding */
+            font-family: 'Press Start 2P', cursive;
+            text-shadow: 2px 2px #000;
+            position: relative;
+            overflow: hidden;
+        }
+        /* ... existing start-screen::before and ::after ... */
+        .start-screen h2 {
+            font-size: 1.8rem; /* Smaller font size */
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 8px; /* Reduced margin */
+            color: var(--secondary-color);
+            z-index: 3;
+        }
+        .start-screen p {
+            max-width: 300px; /* Adjusted max-width */
+            font-size: 0.75rem; /* Smaller font size */
+            color: var(--text-color);
+            line-height: 1.4;
+            margin-bottom: 20px; /* Reduced margin */
+            z-index: 3;
+        }
+        .end-of-round-modal {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+            padding: 15px; /* Reduced padding */
+            font-family: 'Press Start 2P', cursive;
+            color: var(--text-color);
+        }
+        .hide {
+            display: none;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="start-screen" id="start-screen">
+            <h2>WORDFORGE</h2>
+            <p>Make some words!</p>
+            <p>Ready to begin?</p>
+            <button class="btn" id="start-btn">PLAY</button>
+        </div>
+
+        <div class="main-game-area" id="main-game-area">
+            <h1>WORDFORGE</h1>
+            <div class="dashboard">
+                <div class="trophies"><span id="trophy-count">0</span></div>
+                <div class="timer">TIME: <span id="timer-count">60</span>s</div>
+                <div class="words-count">WORDS: <span id="words-count">0</span></div>
+            </div>
+
+            <div class="word-creator-container">
+                <div class="word-creator" id="word-creator"></div>
+                <div class="controls">
+                    <button class="btn" id="create-btn">CREATE </button>
+                    <button class="btn btn-secondary" id="trash-btn">PUT BACK</button>
+                </div>
+            </div>
+            <div class="letter-grid-container">
+                <div class="letter-grid" id="letter-grid"></div>
+            </div>
+
+            <div class="message-box" id="message-box"></div>
+        </div>
+    </div>
+
+    <div id="end-of-round-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-end-of-round">&times;</span>
+            <div class="end-of-round-modal" id="end-of-round-content">
+                <h2>TIME'S UP!</h2>
+                <p>You created <span id="final-words">0</span> words and earned <span id="final-trophies">0</span> trophies.</p>
+                <div id="trophy-shop-list"></div>
+                <button class="btn" id="start-new-game-btn">START NEW GAME</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state variables
+        const gridSize = 5;
+        const maxWordLength = 11;
+        let letterGrid = [];
+        let trophies = 0;
+        let wordsCreated = 0;
+        let currentWordLetters = [];
+        let doubleTrophiesActive = false;
+        const usedWords = new Set();
+        let timeLeft = 60;
+        let timerInterval;
+
+        // UI elements
+        const startScreenEl = document.getElementById('start-screen');
+        const mainGameAreaEl = document.getElementById('main-game-area');
+        const startBtn = document.getElementById('start-btn');
+        const letterGridEl = document.getElementById('letter-grid');
+        const wordCreatorEl = document.getElementById('word-creator');
+        const createBtn = document.getElementById('create-btn');
+        const trashBtn = document.getElementById('trash-btn');
+        const trophyCountEl = document.getElementById('trophy-count');
+        const wordsCountEl = document.getElementById('words-count');
+        const messageBoxEl = document.getElementById('message-box');
+        const timerCountEl = document.getElementById('timer-count');
+        const endOfRoundModal = document.getElementById('end-of-round-modal');
+        const endOfRoundContent = document.getElementById('end-of-round-content');
+        const finalWordsEl = document.getElementById('final-words');
+        const finalTrophiesEl = document.getElementById('final-trophies');
+        const trophyShopListEl = document.getElementById('trophy-shop-list');
+        const startNewGameBtn = document.getElementById('start-new-game-btn');
+        const endOfRoundTrophyMessage = document.createElement('p');
+        endOfRoundTrophyMessage.id = 'end-of-round-trophy-message';
+        endOfRoundContent.insertBefore(endOfRoundTrophyMessage, trophyShopListEl);
+
+        // Power-up definitions with costs
+        const powerUps = [
+            { id: 'shuffle', name: 'SHUFFLE LETTERS', description: 'Shuffles all letters on the board.', cost: 30 },
+            { id: 'double', name: 'DOUBLE TROPHIES', description: 'Doubles trophies for your next valid word.', cost: 50 },
+            { id: 'clear', name: 'CLEAR BOARD', description: 'Clears the entire board and shuffles new letters.', cost: 80 }
+        ];
+
+        // Letter probabilities and points
+        const letterWeights = "eeeeeeeeeaaaaaaaiiiiiiiooooooounnnnnnttttrrrrssshhldcgmubpfvkwyjxqkz";
+        const letterPoints = {
+            'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4,
+            'I': 1, 'J': 8, 'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3,
+            'Q': 10, 'R': 1, 'S': 1, 'T': 1, 'U': 1, 'V': 4, 'W': 4, 'X': 8,
+            'Y': 4, 'Z': 10
+        };
+
+        const longWordBonuses = {
+            6: 10,
+            7: 15,
+            8: 20,
+            9: 25,
+            10: 30,
+            11: 35
+        };
+
+        // --- Game Logic Functions ---
+
+        /**
+         * Generates a random letter based on weighted probabilities.
+         */
+        function getRandomLetter() {
+            const index = Math.floor(Math.random() * letterWeights.length);
+            return letterWeights[index].toUpperCase();
+        }
+
+        /**
+         * Initializes and renders the letter grid.
+         */
+        function initializeGrid() {
+            letterGrid = [];
+            letterGridEl.innerHTML = '';
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const letter = getRandomLetter();
+                const points = letterPoints[letter] || 0;
+                
+                letterGrid.push({ letter, originalIndex: i, isUsed: false });
+
+                const cell = document.createElement('div');
+                cell.classList.add('letter-tile', 'letter-cell');
+                cell.draggable = true;
+                cell.dataset.index = i;
+                cell.dataset.points = points;
+                
+                const letterSpan = document.createElement('span');
+                letterSpan.classList.add('letter');
+                letterSpan.textContent = letter;
+                
+                const pointsSpan = document.createElement('span');
+                pointsSpan.classList.add('points');
+                pointsSpan.textContent = points;
+
+                cell.appendChild(letterSpan);
+                cell.appendChild(pointsSpan);
+
+                cell.addEventListener('dragstart', handleDragStart);
+                cell.addEventListener('click', handleTileClick);
+                letterGridEl.appendChild(cell);
+            }
+            createWordCreatorSlots();
+        }
+
+        function createWordCreatorSlots() {
+            wordCreatorEl.innerHTML = '';
+            for (let i = 0; i < maxWordLength; i++) {
+                const slot = document.createElement('div');
+                slot.classList.add('empty-slot');
+                if (i >= 5 && longWordBonuses[i + 1]) {
+                    slot.classList.add(`highlight-${i + 1}`);
+                    const bonusSpan = document.createElement('span');
+                    bonusSpan.classList.add('slot-content');
+                    bonusSpan.textContent = `+${longWordBonuses[i + 1]}`;
+                    slot.appendChild(bonusSpan);
+                } else {
+                    slot.classList.add('highlight-default');
+                }
+                wordCreatorEl.appendChild(slot);
+            }
+        }
+        
+        /**
+         * Updates the trophy count and UI.
+         */
+        function updateTrophies(amount) {
+            trophies += amount;
+            trophyCountEl.textContent = trophies;
+        }
+
+        /**
+         * Displays a temporary message to the user.
+         */
+        function showMessage(message, type) {
+            messageBoxEl.textContent = message;
+            if (type === 'success') {
+                messageBoxEl.style.backgroundColor = '#4caf50';
+                messageBoxEl.style.color = '#fff';
+            } else {
+                messageBoxEl.style.backgroundColor = '#f44336';
+                messageBoxEl.style.color = '#fff';
+            }
+            messageBoxEl.classList.add('show');
+            setTimeout(() => {
+                messageBoxEl.classList.remove('show');
+            }, 2000);
+        }
+
+        /**
+         * Calculates the trophies earned for a valid word.
+         */
+        function getWordValue() {
+            let value = 0;
+            currentWordLetters.forEach(item => {
+                const letter = item.letter.toUpperCase();
+                value += letterPoints[letter] || 0;
+            });
+
+            // Add long word bonus (exclusive)
+            const wordLength = currentWordLetters.length;
+            if (longWordBonuses[wordLength]) {
+                value += longWordBonuses[wordLength];
+            }
+
+            if (doubleTrophiesActive) {
+                value *= 2;
+                doubleTrophiesActive = false;
+                showMessage("Double trophies applied!", "success");
+            }
+            
+            return value;
+        }
+
+        /**
+         * Resets the word creator area and returns letters to the grid.
+         */
+        function resetWordCreator() {
+            currentWordLetters.forEach(item => {
+                const originalCell = letterGridEl.querySelector(`[data-index="${item.originalIndex}"]`);
+                if (originalCell) {
+                    originalCell.classList.remove('dragged');
+                    originalCell.draggable = true;
+                    // Reset opacity and styling
+                    originalCell.style.opacity = '1';
+                    originalCell.style.pointerEvents = 'auto';
+                }
+            });
+            wordCreatorEl.innerHTML = '';
+            currentWordLetters = [];
+            createWordCreatorSlots();
+        }
+        
+        /**
+         * Checks if a word exists using the Dictionary API.
+         */
+        async function checkWordValidity(word) {
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                return response.status === 200;
+            } catch (error) {
+                console.error("Error checking word validity:", error);
+                return false;
+            }
+        }
+        
+        // --- Drag and Drop & Click Logic ---
+        
+        function addLetterToCreator(letter, originalIndex, points) {
+            if (currentWordLetters.length >= maxWordLength) {
+                showMessage("Word is too long!", "error");
+                return;
+            }
+
+            const firstEmptySlot = wordCreatorEl.querySelector('.empty-slot');
+            if (!firstEmptySlot) return; // No empty slots available
+
+            const creatorLetterEl = document.createElement('div');
+            creatorLetterEl.classList.add('letter-tile', 'creator-letter');
+            
+            const letterSpan = document.createElement('span');
+            letterSpan.classList.add('letter');
+            letterSpan.textContent = letter;
+            
+            const pointsSpan = document.createElement('span');
+            pointsSpan.classList.add('points');
+            pointsSpan.textContent = points;
+            
+            creatorLetterEl.appendChild(letterSpan);
+            creatorLetterEl.appendChild(pointsSpan);
+            
+            // Replace the empty slot with the new tile
+            wordCreatorEl.insertBefore(creatorLetterEl, firstEmptySlot);
+            firstEmptySlot.remove();
+            
+            currentWordLetters.push({ letter: letter.toLowerCase(), originalIndex: originalIndex, points: parseInt(points) });
+        }
+
+        let draggedEl = null;
+
+        function handleDragStart(e) {
+            draggedEl = e.target.closest('.letter-tile');
+            if (!draggedEl.draggable) return;
+
+            e.dataTransfer.effectAllowed = 'move';
+            draggedEl.classList.add('dragged');
+            
+            const originalIndex = draggedEl.dataset.index;
+            const letter = draggedEl.querySelector('.letter').textContent;
+            const points = draggedEl.dataset.points;
+            
+            e.dataTransfer.setData('application/json', JSON.stringify({ originalIndex, letter, points }));
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        function handleDragEnter(e) {
+            e.preventDefault();
+            wordCreatorEl.classList.add('hovering');
+        }
+
+        function handleDragLeave() {
+            wordCreatorEl.classList.remove('hovering');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            wordCreatorEl.classList.remove('hovering');
+            
+            const data = JSON.parse(e.dataTransfer.getData('application/json'));
+            const { originalIndex, letter, points } = data;
+            
+            if (currentWordLetters.some(item => item.originalIndex === originalIndex)) {
+                return;
+            }
+
+            addLetterToCreator(letter, originalIndex, points);
+            
+            // Mark the original tile as used without removing it
+            draggedEl.draggable = false;
+            draggedEl.style.opacity = '0.5';
+            draggedEl.style.pointerEvents = 'none';
+        }
+        
+        function handleDragEnd() {
+            // If the drop was not successful, reset the tile
+            if (draggedEl && draggedEl.draggable === false) {
+                // Do nothing, the tile was successfully dropped
+            } else if (draggedEl) {
+                draggedEl.classList.remove('dragged');
+                draggedEl.style.opacity = '1';
+                draggedEl.style.pointerEvents = 'auto';
+            }
+            draggedEl = null;
+        }
+
+        function handleTileClick(e) {
+            const tile = e.currentTarget;
+            if (!tile.draggable) return; // Do not move if already in the word creator
+
+            const originalIndex = tile.dataset.index;
+            const letter = tile.querySelector('.letter').textContent;
+            const points = tile.dataset.points;
+
+            addLetterToCreator(letter, originalIndex, points);
+            
+            tile.draggable = false;
+            tile.style.opacity = '0.5';
+            tile.style.pointerEvents = 'none';
+        }
+        
+        function shuffleUsedTiles() {
+            currentWordLetters.forEach(item => {
+                const originalCell = letterGridEl.querySelector(`[data-index="${item.originalIndex}"]`);
+                if (originalCell) {
+                    const newLetter = getRandomLetter();
+                    const newPoints = letterPoints[newLetter] || 0;
+                    originalCell.querySelector('.letter').textContent = newLetter;
+                    originalCell.querySelector('.points').textContent = newPoints;
+                    originalCell.dataset.points = newPoints;
+                    originalCell.draggable = true;
+                    originalCell.style.opacity = '1';
+                    originalCell.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        // --- Game Flow Handlers ---
+
+        function startGame() {
+            startScreenEl.style.display = 'none';
+            mainGameAreaEl.style.display = 'flex';
+            resetGame();
+            startTimer();
+        }
+        
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerCountEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    endRound();
+                }
+            }, 1000);
+        }
+        
+        function endRound() {
+            createBtn.disabled = true;
+            trashBtn.disabled = true;
+            mainGameAreaEl.style.display = 'none';
+            endOfRoundModal.style.display = 'flex';
+            finalWordsEl.textContent = wordsCreated;
+            finalTrophiesEl.textContent = trophies;
+            populateTrophyShop();
+        }
+        
+        function populateTrophyShop() {
+            trophyShopListEl.innerHTML = '';
+            document.getElementById('end-of-round-trophy-message').textContent = `You have ${trophies} trophies.`;
+            
+            powerUps.forEach(powerup => {
+                const item = document.createElement('div');
+                item.classList.add('powerup-item');
+                item.innerHTML = `
+                    <div>
+                        <h3>${powerup.name}</h3>
+                        <p>${powerup.description}</p>
+                    </div>
+                    <button class="btn" data-powerup="${powerup.id}" data-cost="${powerup.cost}">
+                        BUY (<span class="cost">${powerup.cost}</span>)
+                    </button>
+                `;
+                const buyBtn = item.querySelector('button');
+                buyBtn.disabled = trophies < powerup.cost;
+                buyBtn.addEventListener('click', () => buyPowerUp(powerup.id, powerup.cost));
+                trophyShopListEl.appendChild(item);
+            });
+        }
+
+        function buyPowerUp(powerupId, cost) {
+            if (trophies >= cost) {
+                updateTrophies(-cost);
+                switch(powerupId) {
+                    case 'shuffle':
+                        initializeGrid();
+                        showMessage('Letters shuffled!', 'success');
+                        break;
+                    case 'double':
+                        doubleTrophiesActive = true;
+                        showMessage('Double trophies activated for your next valid word!', 'success');
+                        break;
+                    case 'clear':
+                        initializeGrid();
+                        resetWordCreator();
+                        showMessage('Board cleared and new letters shuffled!', 'success');
+                        break;
+                }
+                populateTrophyShop();
+            } else {
+                showMessage('Not enough trophies!', 'error');
+            }
+        }
+        
+        function resetGame() {
+            wordsCreated = 0;
+            timeLeft = 60;
+            usedWords.clear();
+            wordsCountEl.textContent = wordsCreated;
+            timerCountEl.textContent = timeLeft;
+            createBtn.disabled = false;
+            trashBtn.disabled = false;
+            resetWordCreator();
+            initializeGrid();
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startGame);
+        startNewGameBtn.addEventListener('click', () => {
+            endOfRoundModal.style.display = 'none';
+            mainGameAreaEl.style.display = 'flex';
+            resetGame();
+            startTimer();
+        });
+
+        createBtn.addEventListener('click', async () => {
+            const currentWord = currentWordLetters.map(item => item.letter).join('');
+            if (currentWord.length < 3) {
+                showMessage("Words must be at least 3 letters long!", "error");
+                resetWordCreator();
+                return;
+            }
+
+            if (usedWords.has(currentWord)) {
+                showMessage(`You already created "${currentWord}"!`, "error");
+                resetWordCreator();
+                return;
+            }
+            
+            createBtn.disabled = true;
+            createBtn.textContent = 'CHECKING...';
+
+            const isValid = await checkWordValidity(currentWord);
+
+            createBtn.disabled = false;
+            createBtn.textContent = 'CREATE WORD';
+
+            if (isValid) {
+                const value = getWordValue();
+                updateTrophies(value);
+                wordsCreated++;
+                wordsCountEl.textContent = wordsCreated;
+                showMessage(`YOU CREATED "${currentWord}"! GAINED ${value} TROPHIES!`, "success");
+                usedWords.add(currentWord);
+                shuffleUsedTiles();
+                resetWordCreator();
+            } else {
+                showMessage(`"${currentWord}" IS NOT A VALID WORD.`, "error");
+                resetWordCreator();
+            }
+        });
+
+        trashBtn.addEventListener('click', resetWordCreator);
+
+        wordCreatorEl.addEventListener('dragover', handleDragOver);
+        wordCreatorEl.addEventListener('dragenter', handleDragEnter);
+        wordCreatorEl.addEventListener('dragleave', handleDragLeave);
+        wordCreatorEl.addEventListener('drop', handleDrop);
+        document.addEventListener('dragend', handleDragEnd);
+    </script>
+</body>
+</html>
