@@ -595,7 +595,7 @@
             for (let i = 0; i < maxWordLength; i++) {
                 const slot = document.createElement('div');
                 slot.classList.add('empty-slot');
-                if (i >= 5 && longWordBonuses[i + 1]) {
+                if (i >= 4 && longWordBonuses[i + 1]) {
                     slot.classList.add(`highlight-${i + 1}`);
                     const bonusSpan = document.createElement('span');
                     bonusSpan.classList.add('slot-content');
